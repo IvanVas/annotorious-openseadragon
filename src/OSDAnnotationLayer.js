@@ -28,11 +28,11 @@ export class AnnotationLayer extends EventEmitter {
     this.readOnly = props.config.readOnly;
     this.headless = props.config.headless;
 
-    // Deprecate the old 'formatter' option 
+    // Deprecate the old 'formatter' option
     if (props.config.formatter)
       this.formatters = [ props.config.formatter ];
     else if (props.config.formatters)
-      this.formatters = Array.isArray(props.config.formatters) ? 
+      this.formatters = Array.isArray(props.config.formatters) ?
         props.config.formatters : [ props.config.formatters ];
 
     this.disableSelect = props.config.disableSelect;
@@ -45,12 +45,12 @@ export class AnnotationLayer extends EventEmitter {
       enableTouchTranslation(this.svg);
     } else {
       this.svg.setAttribute('class', 'a9s-annotationlayer a9s-osd-annotationlayer');
-    }    
+    }
 
     this.g = document.createElementNS(SVG_NAMESPACE, 'g');
 
     this.svg.appendChild(this.g);
-    
+
     this.viewer.canvas.appendChild(this.svg);
 
     this.viewer.addHandler('animation', () => this.resize());
@@ -63,11 +63,11 @@ export class AnnotationLayer extends EventEmitter {
     const onLoad = () => {
       const { x, y } = this.viewer.world.getItemAt(0).source.dimensions;
 
-      const src = this.viewer.world.getItemAt(0).source['@id'] || 
+      const src = this.viewer.world.getItemAt(0).source['@id'] ||
         new URL(this.viewer.world.getItemAt(0).source.url, document.baseURI).href;
 
       this.env.image = {
-        src, 
+        src,
         naturalWidth: x,
         naturalHeight: y
       };
@@ -86,7 +86,7 @@ export class AnnotationLayer extends EventEmitter {
 
       this.g.style.display = 'inline';
 
-      this.resize();     
+      this.resize();
     }
 
     // Store image properties on open (incl. after page change) and on addTiledImage
@@ -109,23 +109,23 @@ export class AnnotationLayer extends EventEmitter {
   _getShapeAt = evt => {
     const getSVGPoint = evt => {
       const pt = this.svg.createSVGPoint();
-  
+
       if (window.TouchEvent && (evt instanceof TouchEvent)) {
         const bbox = this.svg.getBoundingClientRect();
 
         const e = evt.touches[0];
         const x = e.clientX - bbox.x;
         const y = e.clientY - bbox.y;
-  
+
         const { left, top } = this.svg.getBoundingClientRect();
         pt.x = x + left;
         pt.y = y + top;
-  
+
         return pt.matrixTransform(this.g.getScreenCTM().inverse());
       } else {
         pt.x = evt.offsetX;
         pt.y = evt.offsetY;
-  
+
         return pt.matrixTransform(this.g.getCTM().inverse());
       }
     }
@@ -140,15 +140,12 @@ export class AnnotationLayer extends EventEmitter {
   /** Initializes the OSD MouseTracker used for drawing **/
   _initDrawingTools = gigapixelMode => {
     let started = false;
-    
-    let firstDragDone = false;
 
     let dragging = false;
 
     this.tools = new DrawingTools(this.g, this.config, this.env);
 
     this.tools.on('complete', shape => {
-      firstDragDone = false;
       this.onDrawingComplete(shape);
     });
 
@@ -159,6 +156,16 @@ export class AnnotationLayer extends EventEmitter {
         if (!this.mouseTracker.enabled) {
           info.preventDefault = false;
           info.preventGesture = true;
+        }
+
+        const selectOnDrawingEnabled =
+          this.mouseTracker.enabled &&
+          info.eventType === 'click' &&
+          !this.tools.current.isDrawing &&
+          this.hoveredShape;
+
+        if (selectOnDrawingEnabled) {
+          this.selectShape(this.hoveredShape);
         }
 
         if (this.selectedShape && info.eventType === 'wheel') {
@@ -178,29 +185,20 @@ export class AnnotationLayer extends EventEmitter {
       moveHandler: evt => {
         if (this.tools.current.isDrawing) {
           const { x , y } = this.tools.current.getSVGPoint(evt.originalEvent);
- 
-          if (!evt.buttons || !firstDragDone) {
-            evt.originalEvent.stopPropagation();
 
-            this.tools.current.onMouseMove(x, y, evt.originalEvent);
+          evt.originalEvent.stopPropagation();
 
-            if (!started) {
-              this.emit('startSelection', { x , y });
-              started = true;
-            }
-          } else {
-            if (!dragging && this.tools.current.onDragStart)
-              this.tools.current.onDragStart(x, y, evt.originalEvent);
+          this.tools.current.onMouseMove(x, y, evt.originalEvent);
 
-            dragging = true;
+          if (!started) {
+            this.emit('startSelection', { x , y });
+            started = true;
           }
         }
       },
 
       releaseHandler: evt => {
         if (this.tools.current.isDrawing) {
-          firstDragDone = true;
-
           const { x , y } = this.tools.current.getSVGPoint(evt.originalEvent);
           this.tools.current.onMouseUp(x, y, evt.originalEvent);
 
@@ -221,13 +219,13 @@ export class AnnotationLayer extends EventEmitter {
 
     // Inverted mode
     const inverted = this.config.hotkey?.inverted;
-  
+
     this.mouseTracker.enabled = inverted;
 
     // Keep tracker disabled until Shift is held
     if (this.onKeyDown)
       document.removeEventListener('keydown', this.onKeyDown);
-    
+
     if (this.onKeyUp)
       document.removeEventListener('keydown', this.onKeyDown);
 
@@ -245,7 +243,7 @@ export class AnnotationLayer extends EventEmitter {
         this.tools.current.enabled = inverted;
       }
     };
-        
+
     document.addEventListener('keydown', this.onKeyDown);
     document.addEventListener('keyup', this.onKeyUp);
   }
@@ -255,7 +253,7 @@ export class AnnotationLayer extends EventEmitter {
     // Keep in mind that annotations are NOT automatically stacked from large
     // to small. Therefore, smaller ones might be obscured underneath larger
     // ones. That's the reason we can't use native mouseEnter/mouseLeave events
-    // on the SVG shapes! 
+    // on the SVG shapes!
     this.svg.addEventListener('mousemove', evt => {
       // Don't track mouseEnter/mouseLeave while drawing
       if (!this.tools?.current.isDrawing) {
@@ -270,7 +268,7 @@ export class AnnotationLayer extends EventEmitter {
             if (this.hoveredShape) {
               const element = this.hoveredShape.element || this.hoveredShape;
               removeClass(element, 'hover');
-              
+
               this.emit('mouseLeaveAnnotation', this.hoveredShape.annotation, this.hoveredShape);
             }
 
@@ -293,7 +291,7 @@ export class AnnotationLayer extends EventEmitter {
       }
     });
 
-    // Unfortunately, drag ALSO creates a click 
+    // Unfortunately, drag ALSO creates a click
     // event - ignore in this case.
     let lastMouseDown = null;
 
@@ -307,9 +305,9 @@ export class AnnotationLayer extends EventEmitter {
       if (!(this.tools.current?.isDrawing || this.disableSelect)) {
         // Ignore "false click" after drag!
         const timeSinceMouseDown = new Date().getTime() - lastMouseDown;
-        
+
         // Real click (no drag)
-        if (timeSinceMouseDown < 250) {   
+        if (timeSinceMouseDown < 250) {
           // Click happened on the current selection?
           const isSelection = originalEvent.target.closest('.a9s-annotation.editable.selected');
           const hoveredShape = isSelection ? this.selectedShape : this._getShapeAt(originalEvent);
@@ -322,7 +320,7 @@ export class AnnotationLayer extends EventEmitter {
             this.deselect();
             this.emit('select', {});
           }
-        } 
+        }
       }
 
       if (this.disableSelect && this.hoveredShape)
@@ -355,15 +353,15 @@ export class AnnotationLayer extends EventEmitter {
     Array.from(this.svg.querySelectorAll('.a9s-non-scaling')).forEach(shape =>
       // This could check if the shape is actually inside the viewport.
       // However, the lookup might be just as costly as setting the attribute.
-      // Alternatively, a future implementation of the annotation store which caches 
+      // Alternatively, a future implementation of the annotation store which caches
       // the bounds might be able to provide this info without a DOM lookup.
       // Either way: this is for the future. No need to optimize prematurely.
       shape.setAttribute('transform', `scale(${1 / scale})`));
   }
 
-  /** 
+  /**
    * Adds an annotation to the annotation layer.
-   * Returns the shape for convenience. 
+   * Returns the shape for convenience.
    */
   addAnnotation = (annotation, optBuffer) => {
     const g = optBuffer || this.g;
@@ -375,10 +373,10 @@ export class AnnotationLayer extends EventEmitter {
     shape.annotation = annotation;
 
     g.appendChild(shape);
-    
+
     format(shape, annotation, this.formatters);
     this.scaleFormatterElements(shape);
-    
+
     return shape;
   }
 
@@ -389,7 +387,7 @@ export class AnnotationLayer extends EventEmitter {
     const selected = this.selectedShape?.annotation;
     if (selected === annotation || selected?.isSelection || selected == previous)
       this.deselect();
-  
+
     if (previous)
       this.removeAnnotation(annotation);
 
@@ -408,9 +406,9 @@ export class AnnotationLayer extends EventEmitter {
     return zoom * containerWidth / this.viewer.world.getContentFactor();
   }
 
-  deselect = () => {    
+  deselect = () => {
     this.tools?.current.stop();
-    
+
     if (this.selectedShape) {
       const { annotation } = this.selectedShape;
 
@@ -428,7 +426,7 @@ export class AnnotationLayer extends EventEmitter {
         // Non-editable shape or read-only
         removeClass(this.selectedShape, 'selected');
       }
-      
+
       this.selectedShape = null;
     }
   }
@@ -449,10 +447,10 @@ export class AnnotationLayer extends EventEmitter {
     if (shape) {
       const immediately = opts ? (
         typeof opts == 'boolean' ? opts : opts.immediately
-      ) : false; 
+      ) : false;
 
       const padding = (opts?.padding || 0);
-      
+
       const containerBounds = this.viewer.container.getBoundingClientRect();
 
       const paddingRelative = Math.min(
@@ -469,7 +467,7 @@ export class AnnotationLayer extends EventEmitter {
 
       const rect = this.viewer.viewport.imageToViewportRectangle(padX, padY, padW, padH);
       this.viewer.viewport[fn](rect, immediately);
-    }    
+    }
   }
 
   fitBounds = (annotationOrId, immediately) =>
@@ -525,7 +523,7 @@ export class AnnotationLayer extends EventEmitter {
       this.store.insert(annotations);
       console.timeEnd('Took');
 
-      this.resize(); 
+      this.resize();
     });
   }
 
@@ -560,7 +558,7 @@ export class AnnotationLayer extends EventEmitter {
       const center = this.viewer.viewport.windowToViewportCoordinates(new OpenSeadragon.Point(x, y));
 
       this.viewer.viewport.panTo(center, immediately);
-    }    
+    }
   }
 
   removeAnnotation = annotationOrId => {
@@ -569,7 +567,7 @@ export class AnnotationLayer extends EventEmitter {
 
     if (this.selectedShape?.annotation.id === id)
       this.deselect();
-      
+
     const toRemove = this.findShape(annotationOrId);
 
     if (toRemove) {
@@ -584,7 +582,7 @@ export class AnnotationLayer extends EventEmitter {
       this.store.remove(annotation);
     }
   }
-  
+
   removeDrawingTool = id =>
     this.tools?.unregisterTool(id);
 
@@ -609,14 +607,14 @@ export class AnnotationLayer extends EventEmitter {
         this.scaleTool(this.selectedShape);
         this.emit('viewportChange', this.selectedShape.element);
       } else {
-        this.emit('viewportChange', this.selectedShape); 
-      }       
+        this.emit('viewportChange', this.selectedShape);
+      }
     }
 
     if (this.tools?.current)
       this.scaleTool(this.tools.current);
   }
-  
+
   scaleFormatterElements = opt_shape => {
     const scale = 1 / this.currentScale();
 
@@ -650,7 +648,7 @@ export class AnnotationLayer extends EventEmitter {
     if (selected) {
       this.selectShape(selected, skipEvent);
 
-      const element = this.selectedShape.element ? 
+      const element = this.selectedShape.element ?
         this.selectedShape.element : this.selectedShape;
 
       return { annotation: selected.annotation, element };
@@ -662,7 +660,7 @@ export class AnnotationLayer extends EventEmitter {
   selectShape = (shape, skipEvent) => {
     if (!skipEvent && !shape.annotation.isSelection)
       this.emit('clickAnnotation', shape.annotation, shape);
-  
+
     // Don't re-select
     if (this.selectedShape?.annotation === shape.annotation)
       return;
@@ -683,7 +681,7 @@ export class AnnotationLayer extends EventEmitter {
           shape.parentNode.removeChild(shape);
 
           // Fire the event AFTER the original shape was removed. Otherwise,
-          // people calling `.getAnnotations()` in the `onSelectAnnotation` 
+          // people calling `.getAnnotations()` in the `onSelectAnnotation`
           // handler will receive a duplicate annotation
           // (See issue https://github.com/recogito/annotorious-openseadragon/issues/63)
           if (!skipEvent)
@@ -695,7 +693,7 @@ export class AnnotationLayer extends EventEmitter {
 
         this.scaleFormatterElements(this.selectedShape.element);
 
-        this.selectedShape.element.annotation = annotation;  
+        this.selectedShape.element.annotation = annotation;
 
         // Disable normal OSD nav
         const editableShapeMouseTracker = new OpenSeadragon.MouseTracker({
@@ -734,7 +732,7 @@ export class AnnotationLayer extends EventEmitter {
       addClass(shape, 'selected');
 
       if (!skipEvent)
-        this.emit('select', { annotation, element: shape, skipEvent });   
+        this.emit('select', { annotation, element: shape, skipEvent });
     }
   }
 
@@ -768,9 +766,9 @@ export class AnnotationLayer extends EventEmitter {
     if (this.tools?.current) {
       if (this.tools.current.isDrawing)
         this.tools.current.stop();
-  
+
       this.mouseTracker.enabled = false;
-      this.tools.current.enabled = false; 
+      this.tools.current.enabled = false;
     }
   }
 
