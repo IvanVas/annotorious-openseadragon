@@ -1,5 +1,5 @@
 {
-  "name": "@recogito/annotorious-openseadragon",
+  "name": "@ivanvas/annotorious-openseadragon",
   "version": "2.7.11",
   "description": "Annotorious image annotation for OpenSeadragon",
   "main": "dist/openseadragon-annotorious.min.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/recogito/annotorious-openseadragon.git"
+    "url": "git+https://github.com/ivanvas/annotorious-openseadragon.git"
   },
   "keywords": [
     "Annotation",
@@ -53,5 +53,8 @@
     "preact": "^10.5.13",
     "rbush": "^3.0.1",
     "tiny-emitter": "^2.1.0"
+  },
+  "publishConfig": {
+    "@ivanvas:registry": "https://npm.pkg.github.com"
   }
 }
