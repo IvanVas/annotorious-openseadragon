@@ -82,7 +82,7 @@ export default class OpenSeadragonAnnotator extends Component {
         this.cancelSelected();
         this.props.onCancelSelected(selectedAnnotation);
       }
-    } else if (evt.which === 46) { // Delete
+    } else if (evt.which === 46 || evt.which === 8) { // Delete or Backspace
       const { disableDeleteKey } = this.props.config;
 
       if (!disableDeleteKey) {
